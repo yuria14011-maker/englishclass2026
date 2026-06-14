@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>영어 문법 퀴즈</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f0f4f8; padding: 20px; line-height: 1.6; }
+        .quiz-box { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        .question { font-size: 18px; font-weight: bold; color: #d32f2f; margin-bottom: 10px; }
+        .btn { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; font-size: 14px; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background-color: #45a049; }
+        .answer-box { display: none; margin-top: 15px; padding: 15px; background-color: #e8f5e9; border-left: 5px solid #4CAF50; }
+        .correct { font-size: 18px; font-weight: bold; color: #2e7d32; margin-bottom: 5px; }
+        .reason { color: #555; }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-align: center; color: #333;">🇬🇧 영어 문장 규칙 퀴즈</h1>
+    <p style="text-align: center; color: #666; margin-bottom: 30px;">각 문장에서 틀린 부분 한 곳을 찾고, 정답 버튼을 눌러 확인해 보세요.</p>
+
+    <div id="quiz-container"></div>
+
+    <script>
+        const questions = [
+            { id: 1, wrong: "It's a chinese cookie.", correct: "It's a Chinese cookie.", reason: "국가 형용사(Chinese)의 첫 글자는 항상 대문자로 써야 합니다." },
+            { id: 2, wrong: "It's a Korea drink.", correct: "It's a Korean drink.", reason: "물건을 설명할 때는 나라 이름(Korea) 대신 국가 형용사(Korean)를 씁니다." },
+            { id: 3, wrong: "It's a Vietnam hat.", correct: "It's a Vietnamese hat.", reason: "Vietnam은 나라 이름입니다. '베트남의'라는 뜻인 Vietnamese를 써야 합니다." },
+            { id: 4, wrong: "It's a Italian food.", correct: "It's Italian food.", reason: "food는 셀 수 없는 명사로 취급하여 앞에 'a'를 붙이지 않습니다." },
+            { id: 5, wrong: "It's a Mexican food.", correct: "It's Mexican food.", reason: "이 이미지의 규칙에 따르면 food 앞에는 관사 'a'를 쓰지 않습니다." },
+            { id: 6, wrong: "It's a China cookie.", correct: "It's a Chinese cookie.", reason: "China(중국)가 아니라 Chinese(중국의)로 써서 cookie를 꾸며줍니다." },
+            { id: 7, wrong: "It's a italy food.", correct: "It's Italian food.", reason: "소문자로 시작한 italy를 대문자 Italian으로 바꾸고 'a'를 삭제해야 합니다." },
+            { id: 8, wrong: "It's a korean drink.", correct: "It's a Korean drink.", reason: "korean은 소문자가 아니라 대문자 K로 시작해야 합니다." },
+            { id: 9, wrong: "It's a vietnamese hat.", correct: "It's a Vietnamese hat.", reason: "국적을 나타내는 단어는 항상 대문자로 시작합니다 (Vietnamese)." },
+            { id: 10, wrong: "it's a Korean drink.", correct: "It's a Korean drink.", reason: "문장의 첫 글자는 항상 대문자(It's)로 시작해야 합니다." },
+            { id: 11, wrong: "It's a italian food.", correct: "It's Italian food.", reason: "Italian의 첫 글자는 대문자여야 하며, food 앞에는 'a'를 쓰지 않습니다." },
+            { id: 12, wrong: "It's an Korean drink.", correct: "It's a Korean drink.", reason: "Korean은 자음 소리로 시작하므로 'an'이 아니라 'a'를 씁니다." },
+            { id: 13, wrong: "It's a Chinese Cookie.", correct: "It's a Chinese cookie.", reason: "일반 명사인 cookie는 문장 중간에서 대문자로 쓰지 않습니다." },
+            { id: 14, wrong: "It's Mexican food", correct: "It's Mexican food.", reason: "문장의 끝에는 마침표(.)를 반드시 찍어야 합니다." },
+            { id: 15, wrong: "It's a Mexico hat.", correct: "It's a Mexican hat.", reason: "나라 이름인 Mexico 대신 형용사인 Mexican을 사용합니다." },
+            { id: 16, wrong: "It's a Japan toy.", correct: "It's a Japanese toy.", reason: "Japan(일본) 대신 Japanese(일본의)를 사용해야 합니다." },
+            { id: 17, wrong: "It's a France bread.", correct: "It's a French bread.", reason: "France(프랑스) 대신 French(프랑스의)를 사용해야 합니다." },
+            { id: 18, wrong: "It's a Germany car.", correct: "It's a German car.", reason: "Germany(독일) 대신 German(독일의)을 사용해야 합니다." },
+            { id: 19, wrong: "It's a American flag.", correct: "It's an American flag.", reason: "American은 모음 소리로 시작하므로 'an'을 써야 합니다." },
+            { id: 20, wrong: "It's a Thai food.", correct: "It's Thai food.", reason: "음식(food)을 나타낼 때는 관사 'a'를 생략합니다." },
+            { id: 21, wrong: "It's a brazil coffee.", correct: "It's Brazilian coffee.", reason: "대문자로 시작하는 Brazilian(브라질의)을 써야 하며, coffee도 보통 'a'를 안 붙입니다." },
+            { id: 22, wrong: "It's a Swisses watch.", correct: "It's a Swiss watch.", reason: "스위스의 물건은 Swiss(스위스의)라고 표현합니다." },
+            { id: 23, wrong: "It's a Australia bird.", correct: "It's an Australian bird.", reason: "Australia를 Australian으로 바꾸고, 모음 앞이므로 an을 씁니다." },
+            { id: 24, wrong: "It's a Egypt vase.", correct: "It's an Egyptian vase.", reason: "Egypt 대신 Egyptian을 써야 하며, 모음 앞이므로 an을 씁니다." },
+            { id: 25, wrong: "It's a India curry.", correct: "It's Indian curry.", reason: "India를 Indian으로 바꾸고, curry 앞에는 보통 'a'를 쓰지 않습니다." }
+        ];
+
+        const container = document.getElementById('quiz-container');
+
+        questions.forEach(q => {
+            const box = document.createElement('div');
+            box.className = 'quiz-box';
+            box.innerHTML = `
+                <div class="question">Q${q.id}. ${q.wrong}</div>
+                <button class="btn" onclick="toggleAnswer(${q.id})" id="btn-${q.id}">정답 및 해설 보기</button>
+                <div class="answer-box" id="ans-${q.id}">
+                    <div class="correct">⭕ ${q.correct}</div>
+                    <div class="reason">💡 <strong>해설:</strong> ${q.reason}</div>
+                </div>
+            `;
+            container.appendChild(box);
+        });
+
+        function toggleAnswer(id) {
+            const ansBox = document.getElementById('ans-' + id);
+            const btn = document.getElementById('btn-' + id);
+            if (ansBox.style.display === 'block') {
+                ansBox.style.display = 'none';
+                btn.innerText = '정답 및 해설 보기';
+            } else {
+                ansBox.style.display = 'block';
+                btn.innerText = '닫기';
+            }
+        }
+    </script>
+
+</body>
+</html>
