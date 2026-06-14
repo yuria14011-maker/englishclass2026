@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스피드 읽기 게임</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 95%;
+            max-width: 1000px;
+            height: 75vh;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- 설정 창 (Setup Screen) --- */
+        #setup-screen, #result-screen {
+            text-align: center;
+            width: 100%;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .setup-grid {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 350px;
+        }
+
+        .input-box label {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+
+        .input-box textarea {
+            width: 100%;
+            height: 150px;
+            font-size: 16px;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        .input-box input[type="number"] {
+            width: 100px;
+            font-size: 20px;
+            padding: 8px;
+            text-align: center;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+        }
+
+        .desc {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .btn-start, .btn-restart {
+            background-color: #3498db;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 20px;
+        }
+
+        .btn-start:hover, .btn-restart:hover {
+            background-color: #2980b9;
+        }
+
+        /* --- 게임 창 (Game Screen) --- */
+        #game-screen {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #ffffff;
+            transition: background-color 0.3s;
+        }
+
+        .top-right {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-size: 40px;
+            font-weight: 900;
+            color: #2c3e50;
+            background: #ecf0f1;
+            padding: 10px 25px;
+            border-radius: 15px;
+            border: 3px solid #bdc3c7;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .time-up {
+            color: #e74c3c !important;
+            border-color: #e74c3c !important;
+            background: #fadbd8 !important;
+            animation: shake 0.5s infinite;
+        }
+
+        .center-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 90%;
+        }
+
+        .word-display {
+            font-size: 70px;
+            font-weight: 900;
+            color: #2c3e50;
+            word-wrap: break-word;
+        }
+
+        /* 탈락 표현(폭탄) 스타일 */
+        .bomb-word {
+            color: #e74c3c;
+            text-shadow: 3px 3px 0 #fadbd8;
+            animation: pop 0.4s ease-out;
+        }
+
+        .bottom-left {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn-o, .btn-x {
+            font-size: 40px;
+            font-weight: 900;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn-o { background-color: #2ecc71; }
+        .btn-o:active { transform: translateY(6px); box-shadow: 0 0 0 rgba(0,0,0,0.2); }
+
+        .btn-x { background-color: #e74c3c; }
+        .btn-x:active { transform: translateY(6px); box-shadow: 0 0 0 rgba(0,0,0,0.2); }
+
+        .bottom-right {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+        }
+
+        .btn-finish {
+            background-color: #95a5a6;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #7f8c8d;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        .btn-finish:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #7f8c8d;
+        }
+
+        /* --- 결과 창 --- */
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin: 40px 0;
+        }
+        .score-card {
+            background: #ecf0f1;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 200px;
+        }
+        .score-title { font-size: 24px; font-weight: bold; color: #34495e; }
+        .score-number { font-size: 60px; font-weight: 900; margin-top: 10px; }
+        .score-o { color: #2ecc71; }
+        .score-x { color: #e74c3c; }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. 설정 창 -->
+    <div id="setup-screen">
+        <h1>⏳ 스피드 읽기 게임 설정</h1>
+        
+        <div class="setup-grid">
+            <div class="input-box">
+                <label>주요 표현 (엔터로 구분, 최대 20개)</label>
+                <textarea id="key-expressions" placeholder="예:&#10;apple&#10;banana&#10;I like apples."></textarea>
+                <div class="desc">빈칸 없이 입력해주세요.</div>
+            </div>
+            
+            <div class="input-box">
+                <label>탈락 표현 (엔터로 구분, 최대 3개)</label>
+                <textarea id="bomb-expressions" placeholder="예:&#10;Bomb!&#10;Game Over"></textarea>
+                <div class="desc">주요 표현 3~5회 등장 후 랜덤으로 나옵니다.</div>
+            </div>
+        </div>
+
+        <div class="input-box" style="align-items: center; width: 100%;">
+            <label>제한 시간 (초)</label>
+            <input type="number" id="time-limit" value="5" min="1" max="60">
+        </div>
+
+        <button class="btn-start" onclick="startGame()">게임 시작</button>
+    </div>
+
+    <!-- 2. 게임 창 -->
+    <div id="game-screen" class="hidden">
+        <div class="top-right" id="timer-display">5.0</div>
+        
+        <div class="center-content">
+            <div class="word-display" id="word-display">단어</div>
+        </div>
+
+        <div class="bottom-left">
+            <button class="btn-o" onclick="recordResult('O')">O</button>
+            <button class="btn-x" onclick="recordResult('X')">X</button>
+        </div>
+
+        <div class="bottom-right">
+            <button class="btn-finish" onclick="finishGame()">Finish</button>
+        </div>
+    </div>
+
+    <!-- 3. 결과 창 -->
+    <div id="result-screen" class="hidden">
+        <h1>🎉 게임 종료!</h1>
+        <div class="score-board">
+            <div class="score-card">
+                <div class="score-title">성공 (O)</div>
+                <div class="score-number score-o" id="result-o">0</div>
+            </div>
+            <div class="score-card">
+                <div class="score-title">실패 (X)</div>
+                <div class="score-number score-x" id="result-x">0</div>
+            </div>
+        </div>
+        <button class="btn-restart" onclick="resetGame()">처음으로 돌아가기</button>
+    </div>
+</div>
+
+<script>
+    // 상태 변수
+    let keyWords = [];
+    let bombWords = [];
+    let timeLimit = 5;
+    
+    let timerInterval;
+    let timeLeft = 0;
+    
+    let scoreO = 0;
+    let scoreX = 0;
+    
+    let prevWord = "";
+    let keysShownSinceBomb = 0;
+    let targetKeysForNextBomb = 0; // 3~5 랜덤 설정
+
+    // DOM 요소
+    const setupScreen = document.getElementById('setup-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const resultScreen = document.getElementById('result-screen');
+    
+    const keyInput = document.getElementById('key-expressions');
+    const bombInput = document.getElementById('bomb-expressions');
+    const timeInput = document.getElementById('time-limit');
+    
+    const timerDisplay = document.getElementById('timer-display');
+    const wordDisplay = document.getElementById('word-display');
+
+    function startGame() {
+        // 1. 입력값 가져오기 및 전처리 (빈 줄 제거)
+        keyWords = keyInput.value.split('\n').map(w => w.trim()).filter(w => w !== "").slice(0, 20);
+        bombWords = bombInput.value.split('\n').map(w => w.trim()).filter(w => w !== "").slice(0, 3);
+        timeLimit = parseInt(timeInput.value) || 5;
+
+        // 유효성 검사
+        if (keyWords.length === 0) {
+            alert("최소 1개 이상의 주요 표현을 입력해주세요.");
+            return;
+        }
+
+        // 2. 변수 초기화
+        scoreO = 0;
+        scoreX = 0;
+        prevWord = "";
+        keysShownSinceBomb = 0;
+        setNextBombTarget();
+
+        // 3. 화면 전환
+        setupScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+
+        // 4. 첫 단어 표시
+        nextTurn();
+    }
+
+    function setNextBombTarget() {
+        // 3~5 사이의 랜덤 정수
+        targetKeysForNextBomb = Math.floor(Math.random() * 3) + 3; 
+    }
+
+    function nextTurn() {
+        clearInterval(timerInterval);
+        timerDisplay.classList.remove('time-up');
+        wordDisplay.classList.remove('bomb-word');
+        gameScreen.style.backgroundColor = "#ffffff";
+
+        let isBombTurn = false;
+        let pool = [];
+
+        // 폭탄이 나올 타이밍인지 확인
+        if (keysShownSinceBomb >= targetKeysForNextBomb && bombWords.length > 0) {
+            isBombTurn = true;
+            pool = bombWords;
+            keysShownSinceBomb = 0; // 카운트 리셋
+            setNextBombTarget(); // 다음 폭탄 타겟 재설정
+        } else {
+            pool = keyWords;
+            keysShownSinceBomb++;
+        }
+
+        // 중복 방지 로직 (풀에 단어가 2개 이상일 때만 적용)
+        let candidates = pool;
+        if (pool.length > 1) {
+            candidates = pool.filter(w => w !== prevWord);
+        }
+        
+        // 랜덤 단어 추출
+        const selectedWord = candidates[Math.floor(Math.random() * candidates.length)];
+        prevWord = selectedWord;
+
+        // 화면 렌더링
+        wordDisplay.innerText = selectedWord;
+        if (isBombTurn) {
+            wordDisplay.innerHTML = "💣<br>" + selectedWord;
+            wordDisplay.classList.add('bomb-word');
+            gameScreen.style.backgroundColor = "#fff0f0"; // 배경 약간 붉게
+        }
+
+        // 타이머 시작
+        timeLeft = timeLimit;
+        timerDisplay.innerText = timeLeft.toFixed(1);
+        
+        timerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                clearInterval(timerInterval);
+                timerDisplay.classList.add('time-up');
+            }
+            timerDisplay.innerText = timeLeft.toFixed(1);
+        }, 100);
+    }
+
+    function recordResult(result) {
+        if (result === 'O') scoreO++;
+        if (result === 'X') scoreX++;
+        
+        // 버튼 누르면 바로 다음 턴 진행
+        nextTurn();
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval);
+        
+        // 결과 표시
+        document.getElementById('result-o').innerText = scoreO;
+        document.getElementById('result-x').innerText = scoreX;
+
+        gameScreen.classList.add('hidden');
+        resultScreen.classList.remove('hidden');
+    }
+
+    function resetGame() {
+        resultScreen.classList.add('hidden');
+        setupScreen.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
