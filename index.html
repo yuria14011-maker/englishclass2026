@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가로형 영어 문장 게임</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --wrong: #ff4d4d;
+            --bg: #1e1e2e;
+            --card: #2b2b3b;
+            --text: #ffffff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .screen.active { display: flex; }
+        
+        /* 설정 화면 */
+        .setup-box { background: var(--card); padding: 40px; border-radius: 20px; text-align: center; width: 450px; border: 1px solid #444; }
+        .control-group { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; font-size: 20px; }
+        .controls { display: flex; align-items: center; gap: 15px; }
+        .controls button { width: 40px; height: 40px; border: none; background: #444; color: white; border-radius: 10px; cursor: pointer; font-size: 20px; }
+        .start-btn { width: 100%; padding: 18px; font-size: 22px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+
+        /* 게임 화면 핵심: 가로 배열 */
+        #game-header { width: 100%; text-align: center; padding: 20px; background: #161625; border-bottom: 2px solid #333; }
+        #question-ko { font-size: 36px; font-weight: 800; color: #ffcc00; margin-top: 10px; }
+        #timer-display { font-size: 22px; opacity: 0.8; }
+
+        #players-container {
+            flex: 1;
+            width: 100%;
+            display: flex; /* 가로 배열의 핵심 */
+            flex-direction: row; /* 횡렬 배치 */
+            padding: 10px;
+            gap: 10px;
+        }
+        .player-area {
+            flex: 1; /* 모든 플레이어가 동일한 너비 점유 */
+            background: var(--card);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #444;
+            overflow: hidden;
+        }
+        .player-header { padding: 15px; font-size: 20px; font-weight: bold; text-align: center; background: rgba(0,0,0,0.2); }
+        .options-grid { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 10px; }
+        
+        .option-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 18px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            background: #3a3a4a;
+            color: white;
+            cursor: pointer;
+            word-break: keep-all;
+            transition: 0.1s;
+        }
+        .option-btn.correct { background: var(--primary) !important; font-weight: bold; border-color: white; }
+        .option-btn.wrong { background: var(--wrong) !important; opacity: 0.5; }
+
+        /* 결과 화면 */
+        .result-box { background: var(--card); padding: 40px; border-radius: 20px; text-align: center; width: 500px; }
+        #results-list { list-style: none; margin: 20px 0; }
+        #results-list li { padding: 15px; background: #3a3a4a; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; font-size: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen" class="screen active">
+        <div class="setup-box">
+            <h1 style="margin-bottom:30px">영어 게임 설정</h1>
+            <div class="control-group">
+                <span>참여 인원</span>
+                <div class="controls">
+                    <button onclick="changeSetting('players', -1)">-</button>
+                    <span id="players-val">4</span>명
+                    <button onclick="changeSetting('players', 1)">+</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <span>제한 시간</span>
+                <div class="controls">
+                    <button onclick="changeSetting('time', -10)">-</button>
+                    <span id="time-val">30</span>초
+                    <button onclick="changeSetting('time', 10)">+</button>
+                </div>
+            </div>
+            <button class="start-btn" onclick="startGame()">게임 시작</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen" style="padding: 0;">
+        <div id="game-header">
+            <div id="timer-display">준비하세요!</div>
+            <div id="question-ko">한글 문장이 이곳에 표시됩니다.</div>
+        </div>
+        <div id="players-container"></div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <div class="result-box">
+            <h1>게임 결과</h1>
+            <ul id="results-list"></ul>
+            <button class="start-btn" onclick="location.reload()">다시 시작</button>
+        </div>
+    </div>
+
+    <script>
+        const sentences = [
+            { en: "This is my aunt, Ms. Brown.", ko: "이분은 나의 이모, 브라운 선생님이셔." },
+            { en: "This is my cousin, Tim.", ko: "이 애는 내 사촌, 팀이야." },
+            { en: "Nice to meet you.", ko: "만나서 반가워." },
+            { en: "I’m Emily’s friend, Daon.", ko: "나는 에밀리의 친구, 다온이야." },
+            { en: "Nice to meet you, too.", ko: "나도 만나서 반가워." },
+            { en: "We are visiting Korea for the first time.", ko: "우리는 한국에 처음 방문했어." },
+            { en: "This is a hanok.", ko: "이것은 한옥이야." },
+            { en: "Do you know anything about hanok?", ko: "너는 한옥에 대해 아는 것이 있니?" },
+            { en: "No, I have no idea.", ko: "아니, 전혀 몰라." },
+            { en: "It’s a Korean house.", ko: "그것은 한국식 집이야." },
+            { en: "It’s very beautiful.", ko: "그것은 매우 아름답네." },
+            { en: "It’s hot.", ko: "덥네." },
+            { en: "Let’s go and get some drinks.", ko: "가서 음료수 좀 마시자." },
+            { en: "What would you like?", ko: "너는 무엇을 원하니?" },
+            { en: "I’d like sikhye.", ko: "나는 식혜를 먹을래." },
+            { en: "Do you know anything about sikhye?", ko: "너는 식혜에 대해 아는 것이 있니?" },
+            { en: "Yes, I know about it.", ko: "응, 그것에 대해 알아." },
+            { en: "It’s a Korean drink.", ko: "그것은 한국식 음료야." },
+            { en: "It’s very sweet. I like it.", ko: "그것은 아주 달콤해. 나는 그것이 좋아." },
+            { en: "What’s this?", ko: "이것은 무엇이니?" },
+            { en: "This is a yakgwa.", ko: "이것은 약과야." },
+            { en: "It’s a Korean cookie.", ko: "그것은 한국식 과자야." },
+            { en: "Try it with the sikhye.", ko: "식혜랑 같이 먹어봐." },
+            { en: "Oh, it’s very delicious. Thanks.", ko: "오, 아주 맛있어. 고마워." },
+            { en: "Have a nice trip!", ko: "즐거운 여행 되렴!" }
+        ];
+
+        let numPlayers = 4;
+        let timeTotal = 30;
+        let timeRemaining = 0;
+        let timerInterval;
+        let scores = [];
+        let isTransitioning = false;
+
+        function changeSetting(type, amount) {
+            if (type === 'players') {
+                numPlayers = Math.min(Math.max(numPlayers + amount, 1), 6);
+                document.getElementById('players-val').textContent = numPlayers;
+            } else {
+                timeTotal = Math.max(timeTotal + amount, 10);
+                document.getElementById('time-val').textContent = timeTotal;
+            }
+        }
+
+        function startGame() {
+            scores = Array(numPlayers).fill(0);
+            timeRemaining = timeTotal;
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('timer-display').textContent = `남은 시간: ${timeRemaining}초`;
+                if (timeRemaining <= 0) endGame();
+            }, 1000);
+
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            isTransitioning = false;
+            const target = sentences[Math.floor(Math.random() * sentences.length)];
+            document.getElementById('question-ko').textContent = target.ko;
+            const container = document.getElementById('players-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                let options = [target.en];
+                while(options.length < 4) {
+                    let r = sentences[Math.floor(Math.random() * sentences.length)].en;
+                    if(!options.includes(r)) options.push(r);
+                }
+                options.sort(() => Math.random() - 0.5);
+
+                const area = document.createElement('div');
+                area.className = 'player-area';
+                area.innerHTML = `<div class="player-header">학생 ${i+1} (${scores[i]}점)</div>`;
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = opt;
+                    btn.onclick = () => {
+                        if(isTransitioning) return;
+                        if(opt === target.en) {
+                            isTransitioning = true;
+                            btn.classList.add('correct');
+                            scores[i]++;
+                            setTimeout(nextQuestion, 500);
+                        } else {
+                            btn.classList.add('wrong');
+                            btn.disabled = true;
+                        }
+                    };
+                    grid.appendChild(btn);
+                });
+                area.appendChild(grid);
+                container.appendChild(area);
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.add('active');
+            const list = document.getElementById('results-list');
+            list.innerHTML = scores.map((s, i) => `<li><span>학생 ${i+1}</span> <span>${s}점</span></li>`).join('');
+        }
+    </script>
+</body>
+</html>
+
+가로형 레이아웃 설계 전략을 담은 프레젠테이션과 수정된 게임 코드가 준비되었습니다. 학생들이 나란히 서서 각자의 영역을 직관적으로 확인하며 즐거운 학습 시간을 가질 수 있기를 바랍니다!
